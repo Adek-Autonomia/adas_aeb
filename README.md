@@ -18,6 +18,10 @@ Launching from console:
 ```
 g++ ${FILENAME} | ./a.out
 ```
+Or:
+```
+g++ ${FILENAME} -o ${EXECUTABLENAME} | ./${EXECUTABLENAME}
+```
 
 ## Additional files
 In additions to .cpp files I've also added a small bash scirp, which should be helpful to determine which port is being used by the device (It should be one of the /dev/ttyACM* files in this case, because we are working with a microcontroller). To run it type in console:
