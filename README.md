@@ -24,6 +24,8 @@ In additions to .cpp files I've also added a small bash scirp, which should be h
 ```
 chmod u+x find_device.sh | ./find_device.sh
 ```
+Mock output:
 <p align = "center" >
   <img width="437" height="190" src="resources/devices.png">
 </p>
+As we can see there are no devices connected through the serial ports as none of listed items is stored in tty* file
