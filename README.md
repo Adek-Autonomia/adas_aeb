@@ -39,3 +39,6 @@ Mock output:
   <img width="437" height="190" src="resources/devices.png">
 </p>
 As we can see there are no devices connected through the serial ports as none of listed items is represented as tty* file
+
+## External resources worth reading
+1. https://blog.mbedded.ninja/programming/operating-systems/linux/linux-serial-ports-using-c-cpp/
