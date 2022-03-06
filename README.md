@@ -18,9 +18,15 @@ Launching from console:
 ```
 g++ ${FILENAME} | ./a.out
 ```
+
 Or:
 ```
 g++ ${FILENAME} -o ${EXECUTABLENAME} | ./${EXECUTABLENAME}
+```
+
+For lib_test.cpp:
+```
+g++ libtest.cpp -lCppLinuxSerial | ./a.out
 ```
 
 ## Additional files
