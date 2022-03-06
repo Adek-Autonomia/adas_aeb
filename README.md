@@ -24,3 +24,6 @@ In additions to .cpp files I've also added a small bash scirp, which should be h
 ```
 chmod u+x find_device.sh | ./find_device.sh
 ```
+<p align = "center" >
+  <img width="437" height="190" src="resources/devices.png">
+</p>
