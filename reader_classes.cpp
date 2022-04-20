@@ -8,6 +8,12 @@
 #include <termios.h> //POSIX terminal control
 #include <unistd.h> //write, read, close functions
 
+/**
+* @brief Tokenize a given string
+*
+* @param input_s String to be tokenized
+* @param delimiter Characted used to divide given string (by default ",")
+*/
 class Tokenizer {
 
     private:
@@ -21,6 +27,11 @@ class Tokenizer {
             del = delimiter;
         }
 
+/**
+ * @brief Tokenizes a string passed to the class
+ *  
+ * @return std::vector<std::string> 
+ */
         std::vector<std::string> tokenize(){
             std::vector<std::string> substrings;
             int start = 0;
@@ -41,12 +52,22 @@ class Tokenizer {
             return substrings;
         }
 
+/**
+ * @brief Set the string value
+ * 
+ * @param var New string value
+ */
         void set_input(std::string var){
             input = var;
         }
 };
 
-
+/**
+* @brief Pipeline used to tokenize string and then convert it's characters to numbers
+*
+* @param input_string String containing data from sensor
+* @param delimiter Character used to distinguish numbers in the string (by default ",")
+*/
 class Pipeline : public Tokenizer {
     private:
         std::vector<std::string> input;
@@ -54,6 +75,13 @@ class Pipeline : public Tokenizer {
 
         Tokenizer tokenizer;
 
+/**
+ * @brief Converts strings of numbers to vectors of floats
+ * 
+ * @param input Input vector of strings containing values to be numerized
+ * 
+ * @return std::vector<float> 
+ */
         std::vector<float> convert_to_num(std::vector<std::string> input){
             //std::cout << "\nStarting conversion to num\n";
             std::vector<float> numerics;
@@ -82,6 +110,11 @@ class Pipeline : public Tokenizer {
             del = delimiter;
         }
 
+/**
+ * @brief Run the pipeline and convert given strings to vectors of floats
+ * 
+ * @return std::vector<std::vector<float>> 
+ */
         std::vector<std::vector<float>> ProcessData() {
             std::vector<std::vector<float>> valuable_data;
 
@@ -110,11 +143,21 @@ class Pipeline : public Tokenizer {
 
 };
 
+/*
+* @brief Class used to handle all of COM port communication
+*
+* @param 
+*/
 class Setup {
     private:
         int serial_port;
         char read_buf[256];
     public:
+
+/**
+ * @brief Set everything necessary to handle port operations
+ * 
+ */
         int SetEverything(){
             serial_port = open("/dev/ttyACM0", O_RDWR);
 
@@ -160,6 +203,11 @@ class Setup {
             }
         }
 
+/**
+ * @brief Reads a single line of input
+ * 
+ * @return char* of read characters
+ */
         char* ReadInput() {
 
             int num_bytes = read(serial_port, &read_buf, sizeof(read_buf));
