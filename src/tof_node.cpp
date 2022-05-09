@@ -1,20 +1,18 @@
 #include "tof_node.h"
-#include "include/pipeline.h"
-#include "include/setup_port.h"
-#include "include/tokenizer.h"
+#include "pipeline.h"
+#include "setup_port.h"
+#include "tokenizer.h"
 
 Tof_node::Tof_node(ros::NodeHandle *nh)
 {
-    pub = nh->advertise<std_msgs::Float32>("/distance_f", 10);
+    pub = nh->advertise<std_msgs::Float32>("/distance", 10);
     dist_sub = nh->subscribe("/distance", 1000, &Tof_node::dist_callback, this);
+    my_port.SetEverything();
 
 }
 
 void Tof_node::dist_callback(const std_msgs::Float32& msg) {
-    Setup my_port;
-    my_port.SetEverything();
-
-
+    
     std::string data = my_port.ReadInput();
     std::vector<std::string> first_try;
     std::vector<std::vector<float>> second_try;
