@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(adas_aeb)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -115,7 +115,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  include
+  include/adas_aeb
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -132,7 +132,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(adas_aeb_node src/main.cpp src/setup_port.cpp tokenizer.cpp pipeline.cpp tof_node.cpp)
+add_executable(adas_aeb_node src/main.cpp src/setup_port.cpp src/tokenizer.cpp src/pipeline.cpp src/tof_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
