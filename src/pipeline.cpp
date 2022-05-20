@@ -58,25 +58,31 @@ std::vector<float> Pipeline::convert_to_num(std::vector<std::string> input){
 std::vector<std::vector<float>> Pipeline::ProcessData() {
     std::vector<std::vector<float>> valuable_data;
     std::cout << "\nSize: " << input.size() << "\n";
-
+    /*
     for (int i = 0; i < 2; i++){
         if (input[i].size() < 15 || input[i].size() > 18){
             std::cout << "\nLine size: " << input[i].size() << "\tDeleting line: " << i << "\n";
             input.erase(input.begin()+i);
+            i = i - 1;
         }
     }
+    */
+
+   if (input.size() > 1) {
+       input.erase(input.begin() + 1, input.end());
+   }
 
     for(int line = 0; line < input.size(); line ++){
+        std::cout << "\nVal data vect nr: " << line << "\t";
         valuable_data.push_back(convert_to_num(Tokenizer::tokenize(&input[line])));
+        /*
+        for (float j : valuable_data[line]){
+            std::cout << j ;
+            break;
+        }
+        */
     }
 
-    //Debug
-    for (int i = 0; i < valuable_data.size(); i++) {
-        std::cout << "\nVal data vect nr: " << i << "\t";
-        for (int j = 0; i < valuable_data[i].size(); j++){
-            std::cout << valuable_data[i][j];
-        }
-    }
 
     for (int i = 0; i < valuable_data.size(); i++){
         if (valuable_data[i].size() == 1){
