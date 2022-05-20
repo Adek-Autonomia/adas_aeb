@@ -58,20 +58,27 @@ std::vector<float> Pipeline::convert_to_num(std::vector<std::string> input){
 std::vector<std::vector<float>> Pipeline::ProcessData() {
     std::vector<std::vector<float>> valuable_data;
     std::cout << "\nSize: " << input.size() << "\n";
+
     for (int i = 0; i < 2; i++){
         if (input[i].size() < 15 || input[i].size() > 18){
-            std::cout << "\nLine size: " << input[i].size() << "\n";
+            std::cout << "\nLine size: " << input[i].size() << "\tDeleting line: " << i << "\n";
             input.erase(input.begin()+i);
         }
     }
 
     for(int line = 0; line < input.size(); line ++){
-        //std::cout << input[line] << "\t" << input[line].size() << "\n";
-        //Tokenizer::input = input[line];
         valuable_data.push_back(convert_to_num(Tokenizer::tokenize(&input[line])));
     }
 
-    for (int i = 0; i<valuable_data.size(); i++){
+    //Debug
+    for (int i = 0; i < valuable_data.size(); i++) {
+        std::cout << "\nVal data vect nr: " << i << "\t";
+        for (int j = 0; i < valuable_data[i].size(); j++){
+            std::cout << valuable_data[i][j];
+        }
+    }
+
+    for (int i = 0; i < valuable_data.size(); i++){
         if (valuable_data[i].size() == 1){
             valuable_data[i].insert(valuable_data[i].begin(), 0);
         }
@@ -82,3 +89,11 @@ std::vector<std::vector<float>> Pipeline::ProcessData() {
     return valuable_data;
 }
 
+/**
+ * @brief Sets the input vector to the given value
+ * 
+ * @param input_vector 
+ */
+void Pipeline::set_input(std::vector<std::string> input_vector) {
+    input = input_vector;
+}

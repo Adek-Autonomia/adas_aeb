@@ -19,8 +19,9 @@ class Pipeline : public Tokenizer {
             
 
     public:
-        Pipeline(std::vector<std::string>, std::string = ",");
+        Pipeline(std::vector<std::string> = {}, std::string = ",");
         ~Pipeline();
         std::vector<std::vector<float>> ProcessData();
+        void set_input(std::vector<std::string>);
 
 };
