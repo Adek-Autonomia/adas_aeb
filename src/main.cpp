@@ -7,7 +7,6 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "distance_measurement");
     ros::NodeHandle nh;
     Tof_node tn = Tof_node(&nh);
-    std::cout << "jebać pw i dziekana";
     
     while(ros::ok()) {
 
