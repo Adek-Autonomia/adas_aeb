@@ -59,7 +59,7 @@ std::vector<std::vector<float>> Pipeline::ProcessData() {
     std::vector<std::vector<float>> valuable_data;
     std::cout << "\nSize: " << input.size() << "\n";
     for (int i = 0; i < 2; i++){
-        if (input[i].size() < 15 || input[i].size() > 16){
+        if (input[i].size() < 15 || input[i].size() > 18){
             std::cout << "\nLine size: " << input[i].size() << "\n";
             input.erase(input.begin()+i);
         }
