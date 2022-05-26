@@ -32,7 +32,7 @@ std::vector<float> Pipeline::convert_to_num(std::vector<std::string> input){
     std::vector<float> numerics;
     int i = 0;
     for(int i=0; i < 2; i++){
-        if (std::stof(input[i])){
+        if ( i == 1){
             numerics.push_back(std::stof(input[i]));
         }
         else{
