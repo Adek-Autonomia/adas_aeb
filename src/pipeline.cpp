@@ -28,7 +28,6 @@ Pipeline::~Pipeline(){
  * @return std::vector<float> 
  */
 std::vector<float> Pipeline::convert_to_num(std::vector<std::string> input){
-    //std::cout << "\nStarting conversion to num\n";
     std::vector<float> numerics;
     int i = 0;
     for(int i=0; i < 2; i++){
@@ -40,11 +39,9 @@ std::vector<float> Pipeline::convert_to_num(std::vector<std::string> input){
         }
     }
 
-    std::cout << "Converted to num, result: \n";
     for(int i=0; i < numerics.size(); i++){
         std::cout << numerics[i] << " " << i << "\n";
     }
-    std::cout << "///////////////////////////////////////////////////////////\n";
 
     return numerics;
 }
@@ -57,30 +54,14 @@ std::vector<float> Pipeline::convert_to_num(std::vector<std::string> input){
  */
 std::vector<std::vector<float>> Pipeline::ProcessData() {
     std::vector<std::vector<float>> valuable_data;
-    std::cout << "\nSize: " << input.size() << "\n";
-    /*
-    for (int i = 0; i < 2; i++){
-        if (input[i].size() < 15 || input[i].size() > 18){
-            std::cout << "\nLine size: " << input[i].size() << "\tDeleting line: " << i << "\n";
-            input.erase(input.begin()+i);
-            i = i - 1;
-        }
-    }
-    */
 
    if (input.size() > 1) {
        input.erase(input.begin() + 1, input.end());
    }
 
     for(int line = 0; line < input.size(); line ++){
-        std::cout << "\nVal data vect nr: " << line << "\t";
         valuable_data.push_back(convert_to_num(Tokenizer::tokenize(&input[line])));
-        /*
-        for (float j : valuable_data[line]){
-            std::cout << j ;
-            break;
-        }
-        */
+
     }
 
 
@@ -88,8 +69,6 @@ std::vector<std::vector<float>> Pipeline::ProcessData() {
         if (valuable_data[i].size() == 1){
             valuable_data[i].insert(valuable_data[i].begin(), 0);
         }
-
-        std::cout << valuable_data[i][1] << "\n";
     }
 
     return valuable_data;

@@ -21,7 +21,6 @@ Tof_node::Tof_node(ros::NodeHandle *nh)
  */
 void Tof_node::publish_dist(){
     std::string data = my_port.ReadInput();
-    std::cout << "Input size: " << data.size() << "\n";
     if (data.empty() == false){
         std::vector<std::string> first_try;
         std::vector<std::vector<float>> second_try;

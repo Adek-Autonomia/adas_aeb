@@ -29,7 +29,6 @@ Tokenizer::~Tokenizer()
     std::vector<std::string> substrings;
     int start = 0;
     std::string input = *ptr_input;
-    std::cout << "\nInput:" << input << "\n";
     int end = input.find(delimiter);
 
     while (end != -1) {
@@ -39,11 +38,9 @@ Tokenizer::~Tokenizer()
     }
     substrings.push_back(input.substr(start, end - start));
 
-    std::cout << "\nTokenization complete, passed delimiter: " << delimiter << "Results:\n";
     for (int i = 0; i < substrings.size(); i++){
         std::cout << substrings[i] << "\t" << i << "\n";
     }
-    //std::cout << "\nDone\n";
 
     return substrings;
 }
