@@ -1,7 +1,7 @@
-#include "adas_aeb/tof_node/tof_node.h"
-#include "adas_aeb/tof_node/pipeline.h"
-#include "adas_aeb/tof_node/setup_port.h"
-#include "adas_aeb/tof_node/tokenizer.h"
+#include "adas_aeb/tof_aeb/tof_node.h"
+#include "adas_aeb/tof_aeb/pipeline.h"
+#include "adas_aeb/tof_aeb/setup_port.h"
+#include "adas_aeb/tof_aeb/tokenizer.h"
 
 /**
  * @brief Initializes new ros node rosponsible for sending distance data from ToF sensors

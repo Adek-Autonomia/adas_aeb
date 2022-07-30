@@ -11,6 +11,12 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   dynamic_reconfigure
+  pcl_conversions
+  message_filters
+  pcl_ros
+  sensor_msgs
+  tf
+  laser_geometry
 )
 
 ## System dependencies are found with CMake's conventions

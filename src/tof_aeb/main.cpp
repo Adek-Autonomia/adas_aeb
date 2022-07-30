@@ -1,4 +1,4 @@
-#include "adas_aeb/tof_aeb/"
+#include "adas_aeb/tof_aeb/pipeline.h"
 #include "adas_aeb/tof_aeb/setup_port.h"
 #include "adas_aeb/tof_aeb/tokenizer.h"
 #include "adas_aeb/tof_aeb/tof_node.h"
