@@ -2,3 +2,4 @@
 build/
 git-credential-manager/
 logs/
+.catkin_tools/
