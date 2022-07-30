@@ -10,7 +10,8 @@
 class CloudFilter
 {
 public:
-    CloudFilter();
+    CloudFilter(const ros::NodeHandle&, const ros::NodeHandle&);
+    ~CloudFilter(){}
     void callback(const sensor_msgs::PointCloud2ConstPtr& cloudIn);
     void setOrigin();
     void setEdge();
@@ -18,7 +19,7 @@ public:
     bool filteringPoints(const sensor_msgs::PointCloud2ConstPtr& cloudIn);
     bool isInBox();
 private:
-    ros::NodeHandle node;
+    ros::NodeHandle handle, privHandle;
     ros::Subscriber sub;
     ros::Publisher pub_marker;
     ros::Publisher pub_stopFlag;

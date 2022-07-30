@@ -5,8 +5,10 @@
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "AEB_TOF_Node");
-    ros::NodeHandle nh;
-    Tof_node tn = Tof_node(&nh);
+    
+    ros::NodeHandle nh, pnh("~");
+
+    Tof_node tn = Tof_node(&nh, &pnh);
     
     while(ros::ok()) {
 

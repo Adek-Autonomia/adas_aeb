@@ -1,5 +1,22 @@
 # adas_aeb
-Repository containing all of the aeb functionality files
+ADAS Advanced Emergency Breaking subsystems. Contains a TOF AEB node, which is hardware-dependent, and a point-cloud based AEB node, which can also run in sim, but needs both LIDAR and a stereo camera.
+
+
+## Launchfiles
+Including in other launchfiles:
+```xml
+<include file="$(find adas_aeb)/launch/default.launch">
+	<arg name="lidar_topic_" default="..." />
+	<arg name="camera_cloud_topic_" default="..." />
+
+	<arg name="stop_topic" default="..." />
+
+	<arg name="use_pcl" default="..." />
+	<arg name="use_tof" default="..." />
+<include>
+```
+
+
 
 # TODO
-Write README.md
+- [X] README.md

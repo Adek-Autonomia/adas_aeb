@@ -8,11 +8,14 @@
  * 
  * @param nh ros::NodeHandle object used as a parent element
  */
-Tof_node::Tof_node(ros::NodeHandle *nh)
+Tof_node::Tof_node(ros::NodeHandle *nh, ros::NodeHandle* pnh)
 {
-    pub = nh->advertise<std_msgs::Float32>("/distance", 10);
-    my_port.SetEverything();
+    std::string paramTmp;
+    pnh->getParam("~stop_topic", paramTmp);
 
+    this->pub = nh->advertise<std_msgs::Float32>(paramTmp, 10);
+
+    this->my_port.SetEverything();
 }
 
 /**

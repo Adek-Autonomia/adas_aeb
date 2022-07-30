@@ -1,15 +1,22 @@
 #include "adas_aeb/pcl_aeb/cloud_filter.h"
 
-CloudFilter::CloudFilter()
+CloudFilter::CloudFilter(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
+    : handle(nh), privHandle(pnh)
 {
     if(ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug))
-  {
-      ros::console::notifyLoggerLevelsChanged();
-  }
+    {
+        ros::console::notifyLoggerLevelsChanged();
+    }
 
-    sub = node.subscribe("/cloud_merged", 10, &CloudFilter::callback, this);
-    pub_marker = node.advertise<visualization_msgs::Marker>("/bounding_box", 1, false);
-    pub_stopFlag = node.advertise<std_msgs::Bool>("/bool/aeb/stop", 1, false);
+    std::string paramTmp;
+
+    this->privHandle.getParam("~merged_pcl_topic", paramTmp);
+    this->sub = handle.subscribe(paramTmp, 10, &CloudFilter::callback, this);
+    
+    this->pub_marker = this->handle.advertise<visualization_msgs::Marker>("/aeb_bounding_box", 1, false);
+    
+    this->privHandle.getParam("~stop_topic", paramTmp);
+    this->pub_stopFlag = this->handle.advertise<std_msgs::Bool>(paramTmp, 1, false);
 
 
     //setting values for boundary box 
@@ -29,16 +36,16 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloudIn)
 
 void CloudFilter::setOrigin()
 {
-    origin.x = 0.4;
-    origin.y = -0.15;
-    origin.z = -0.02;
+    this->origin.x = 0.4;
+    this->origin.y = -0.15;
+    this->origin.z = -0.02;
 }
 
 void CloudFilter::setEdge()
 {
-    edge.x = 0.8;
-    edge.y = 0.3;
-    edge.z = 0.35;
+    this->edge.x = 0.8;
+    this->edge.y = 0.3;
+    this->edge.z = 0.35;
 }
 
 visualization_msgs::Marker CloudFilter::createPointList()
