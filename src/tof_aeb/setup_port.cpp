@@ -4,7 +4,7 @@
  * @brief Set everything necessary to handle port operations
  * 
  */
-int Setup::SetEverything()
+void Setup::SetEverything()
 {
     serial_port = open("/dev/ttyACM0", O_RDWR);
 

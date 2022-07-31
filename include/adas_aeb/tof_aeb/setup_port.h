@@ -20,7 +20,7 @@ class Setup {
         char read_buf[256];
     public:
 
-        int SetEverything();
+        void SetEverything();
         char* ReadInput();
 
 };

@@ -10,12 +10,12 @@ CloudFilter::CloudFilter(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
 
     std::string paramTmp;
 
-    this->privHandle.getParam("~merged_pcl_topic", paramTmp);
+    this->privHandle.getParam("merged_pcl_topic", paramTmp);
     this->sub = handle.subscribe(paramTmp, 10, &CloudFilter::callback, this);
     
     this->pub_marker = this->handle.advertise<visualization_msgs::Marker>("/aeb_bounding_box", 1, false);
     
-    this->privHandle.getParam("~stop_topic", paramTmp);
+    this->privHandle.getParam("stop_topic", paramTmp);
     this->pub_stopFlag = this->handle.advertise<std_msgs::Bool>(paramTmp, 1, false);
 
 

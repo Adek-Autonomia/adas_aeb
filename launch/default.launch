@@ -26,7 +26,7 @@
 
 	<!-- Launch PCL merger for PCL AEB -->
 	<include file="$(find adas_pcl)/launch/default.launch" if="$(arg use_pcl)">
-		<arg name="lidar_topic" value="$(arg lidar_topic)" />
+		<arg name="lidar_topic" value="$(arg lidar_topic_)" />
 		<arg name="camera_cloud_topic" value="$(arg camera_cloud_topic_)" />
 		<arg name="output_topic" value="$(arg merged_pcl_topic)" />
 	</include>
