@@ -19,6 +19,9 @@ CloudFilter::CloudFilter(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
     this->pub_stopFlag = this->handle.advertise<std_msgs::Bool>(paramTmp, 1, false);
 
 
+    this->f = boost::bind(&CloudFilter::reconfCallback, this, _1, _2);
+    this->server.setCallback(f);
+
     //setting values for boundary box 
     setOrigin();
     setEdge();
@@ -97,6 +100,23 @@ visualization_msgs::Marker CloudFilter::createPointList()
     return pointList;
 }
 
+
+
+/**
+ * @brief 
+ * 
+ * @param cfg 
+ * @param level 
+ */
+void CloudFilter::reconfCallback(adas_aeb::PCL_AEB_Config& cfg, uint32_t level)
+{
+    this->numPoints = cfg.points;
+}
+
+
+
+
+
 bool CloudFilter::filteringPoints(const sensor_msgs::PointCloud2ConstPtr& cloudIn)
 {   
     bool needToStop = false;
@@ -149,7 +169,7 @@ bool CloudFilter::filteringPoints(const sensor_msgs::PointCloud2ConstPtr& cloudI
         //amount of points is very arbitrary
         // if it's 20000 car will only stop at walls
         // human model is roughly 3000 to 3500 points, cars circa 7500
-        if (pointCounter == 2500)
+        if (pointCounter == this->numPoints)
         {   needToStop = true;
             break;
         }

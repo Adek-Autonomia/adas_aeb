@@ -95,7 +95,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
 generate_dynamic_reconfigure_options(
-  cfg/pcl_aeb.cfg
+  cfg/PCL_AEB_.cfg
 )
 
 ###################################
@@ -159,7 +159,11 @@ add_executable(pcl_aeb_node src/pcl_aeb/simple_aeb_node.cpp
 ## same as for the library above
 add_dependencies(tof_aeb_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_dependencies(pcl_aeb_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(pcl_aeb_node 
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+  ${PROJECT_NAME}_gencfg
+)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(tof_aeb_node
