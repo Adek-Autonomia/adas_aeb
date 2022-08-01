@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<launch>
+	
+	<arg name="lidar_topic_" default="laser/scan" />
+	<arg name="camera_cloud_topic_" default="/zed2/zed_node/point_cloud/cloud_registered" />
+
+	<arg name="merged_pcl_topic" default="/cloud_merged" />
+	<arg name="stop_topic" default="/aeb/stop" />
+
+	<arg name="use_pcl" default="True" />
+	<arg name="use_tof" default="False" />
+
+
+	<!-- Launch TOF AEB if specified -->
+	<node name="tof_aeb_node" type="tof_aeb_node" pkg="adas_aeb"
+		output="screen" if="$(arg use_tof)">
+		<param name="stop_topic" value="$(arg stop_topic)" />
+	</node>
+
+	<!-- Launch PCL AEB if specified -->
+	<node name="pcl_aeb_node" type="pcl_aeb_node" pkg="adas_aeb"
+		output="screen" if="$(arg use_pcl)">
+		<param name="merged_pcl_topic" value="$(arg merged_pcl_topic)"/>
+		<param name="stop_topic" value="$(arg stop_topic)" />
+	</node>
+
+	<!-- Launch PCL merger for PCL AEB -->
+	<include file="$(find adas_pcl)/launch/default.launch" if="$(arg use_pcl)">
+		<arg name="lidar_topic" value="$(arg lidar_topic_)" />
+		<arg name="camera_cloud_topic" value="$(arg camera_cloud_topic_)" />
+		<arg name="output_topic" value="$(arg merged_pcl_topic)" />
+	</include>
+
+
+</launch>

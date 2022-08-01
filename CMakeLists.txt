@@ -10,6 +10,13 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  dynamic_reconfigure
+  pcl_conversions
+  message_filters
+  pcl_ros
+  sensor_msgs
+  tf
+  laser_geometry
 )
 
 ## System dependencies are found with CMake's conventions
@@ -87,10 +94,9 @@ find_package(catkin REQUIRED COMPONENTS
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+generate_dynamic_reconfigure_options(
+  cfg/PCL_AEB_.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -115,7 +121,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  include/adas_aeb
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -132,7 +138,16 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(adas_aeb_node src/main.cpp src/setup_port.cpp src/tokenizer.cpp src/pipeline.cpp src/tof_node.cpp)
+add_executable(tof_aeb_node src/tof_aeb/main.cpp 
+  src/tof_aeb/setup_port.cpp 
+  src/tof_aeb/tokenizer.cpp 
+  src/tof_aeb/pipeline.cpp 
+  src/tof_aeb/tof_node.cpp
+)
+
+add_executable(pcl_aeb_node src/pcl_aeb/simple_aeb_node.cpp
+  src/pcl_aeb/cloud_filter.cpp
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -142,12 +157,23 @@ add_executable(adas_aeb_node src/main.cpp src/setup_port.cpp src/tokenizer.cpp s
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(adas_aeb_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(tof_aeb_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_dependencies(pcl_aeb_node 
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+  ${PROJECT_NAME}_gencfg
+)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(adas_aeb_node
-   ${catkin_LIBRARIES}
- )
+target_link_libraries(tof_aeb_node
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(pcl_aeb_node
+  ${catkin_LIBRARIES}
+)
+
 
 #############
 ## Install ##
