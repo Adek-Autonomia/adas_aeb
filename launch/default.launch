@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 	
-	<arg name="lidar_topic_" default="laser/scan" />
+	<arg name="lidar_topic_" default="/laser/scan" />
 	<arg name="camera_cloud_topic_" default="/zed2/zed_node/point_cloud/cloud_registered" />
 
 	<arg name="merged_pcl_topic" default="/cloud_merged" />

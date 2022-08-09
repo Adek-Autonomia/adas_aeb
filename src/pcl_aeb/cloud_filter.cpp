@@ -32,8 +32,9 @@ CloudFilter::CloudFilter(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
 void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloudIn)
 {
     // sensor_msgs::PointCloud2Ptr cloud;
-    filteringPoints(cloudIn);
     pub_marker.publish(marker);
+    pub_stopFlag.publish(filteringPoints(cloudIn));
+    // filteringPoints(cloudIn);
     // pub_cloud.publish(*cloud);
 }
 
@@ -117,12 +118,13 @@ void CloudFilter::reconfCallback(adas_aeb::PCL_AEB_Config& cfg, uint32_t level)
 
 
 
-bool CloudFilter::filteringPoints(const sensor_msgs::PointCloud2ConstPtr& cloudIn)
+std_msgs::Bool CloudFilter::filteringPoints(const sensor_msgs::PointCloud2ConstPtr& cloudIn)
 {   
     bool needToStop = false;
     int pointCounter = 0;
     // sensor_msgs::PointCloud2Ptr cloudOut;
     sensor_msgs::PointCloud2ConstIterator<float> it(*cloudIn, "x");
+    std_msgs::Bool out;
 
     // pcl::PointCloud<pcl::PointXYZ>::Ptr cloudPCL(new pcl::PointCloud<pcl::PointXYZ>);
     // pcl::PointIndices:: Ptr indices(new pcl::PointIndices);
@@ -176,5 +178,7 @@ bool CloudFilter::filteringPoints(const sensor_msgs::PointCloud2ConstPtr& cloudI
     }
     ROS_DEBUG("%d", pointCounter);
 
-    return needToStop;
+    out.data = needToStop; 
+
+    return out;
 }

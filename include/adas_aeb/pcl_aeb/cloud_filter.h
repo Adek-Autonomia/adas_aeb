@@ -18,8 +18,8 @@ class CloudFilter
         void setOrigin();
         void setEdge();
         visualization_msgs::Marker createPointList();
-        bool filteringPoints(const sensor_msgs::PointCloud2ConstPtr& cloudIn);
-        bool isInBox();
+        std_msgs::Bool filteringPoints(const sensor_msgs::PointCloud2ConstPtr& cloudIn);
+        // bool isInBox();
 
         void reconfCallback(adas_aeb::PCL_AEB_Config&, uint32_t);
     private:
