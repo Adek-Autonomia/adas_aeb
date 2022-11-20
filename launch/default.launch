@@ -6,6 +6,7 @@
 
 	<arg name="merged_pcl_topic" default="/cloud_merged" />
 	<arg name="stop_topic" default="/aeb/stop" />
+	<!-- <arg name="cloud filtered" default="/cloud_filtered"/> -->
 
 	<arg name="use_pcl" default="True" />
 	<arg name="use_tof" default="False" />
@@ -22,6 +23,7 @@
 		output="screen" if="$(arg use_pcl)">
 		<param name="merged_pcl_topic" value="$(arg merged_pcl_topic)"/>
 		<param name="stop_topic" value="$(arg stop_topic)" />
+		<!-- <param name="cloud_filtered" value="$(arg cloud_filtered)"/> -->
 	</node>
 
 	<!-- Launch PCL merger for PCL AEB -->

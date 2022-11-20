@@ -4,9 +4,9 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "pcl_aeb_node");
 
-    ros::NodeHandle nh, pnh("~");
+    ros::NodeHandle nh;
 
-    CloudFilter cloudFilter(nh, pnh);
+    CloudFilter cloudFilter(nh);
 
     ros::spin();
 

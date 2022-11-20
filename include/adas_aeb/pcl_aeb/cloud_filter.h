@@ -1,40 +1,35 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/point_cloud2_iterator.h>
-#include <nav_msgs/Odometry.h>
-#include <visualization_msgs/Marker.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/filters/extract_indices.h>
 #include <std_msgs/Bool.h>
-#include <adas_aeb/PCL_AEB_Config.h>
-#include <dynamic_reconfigure/server.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl/ModelCoefficients.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/kdtree/kdtree.h>
+#include <pcl/segmentation/extract_clusters.h>
+
+
+
 
 class CloudFilter
 {
     public:
-        CloudFilter(const ros::NodeHandle&, const ros::NodeHandle&);
+        CloudFilter(const ros::NodeHandle&);
         ~CloudFilter(){}
         void callback(const sensor_msgs::PointCloud2ConstPtr& cloudIn);
-        void setOrigin();
-        void setEdge();
-        visualization_msgs::Marker createPointList();
-        std_msgs::Bool filteringPoints(const sensor_msgs::PointCloud2ConstPtr& cloudIn);
-        // bool isInBox();
 
-        void reconfCallback(adas_aeb::PCL_AEB_Config&, uint32_t);
     private:
-        ros::NodeHandle handle, privHandle;
+        ros::NodeHandle handle;
         ros::Subscriber sub;
-        ros::Publisher pub_marker;
         ros::Publisher pub_stopFlag;
-
-        unsigned int numPoints;
-
-        dynamic_reconfigure::Server<adas_aeb::PCL_AEB_Config> server;
-        dynamic_reconfigure::Server<adas_aeb::PCL_AEB_Config>::CallbackType f;
-
-        visualization_msgs::Marker marker;
-
-        geometry_msgs::Point origin;
-        geometry_msgs::Vector3 edge;
+        ros::Publisher pub_cluster;
 };
