@@ -1,0 +1,18 @@
+<launch>
+	<arg name="topic" default="/stop" />
+
+	<include file="$(find adas_aeb)/launch/default.launch">
+		<arg name="use_pcl" default="False" />
+		<arg name="use_tof" default="True" />
+		<arg name="stop_topic" default="$(arg topic)" />
+	</include>
+
+	<test test-name="advertisetest_test" pkg="rostest" type="advertisetest" time-limit="7.0" retry="3">
+        <rosparam>
+            topics:
+              - name: /stop
+                timeout: 2.
+        </rosparam>
+	  </test>
+
+</launch>
