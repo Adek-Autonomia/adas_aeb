@@ -27,10 +27,10 @@ class CloudFilter
         ~CloudFilter(){}
         void callback(const sensor_msgs::PointCloud2ConstPtr& cloudIn);
         void paintWholeCloudWhite(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
-        void paintClusters();
+        void paintClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters);
         void downSample(pcl::PCLPointCloud2::Ptr PCLcloud);
         void passthrough(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
-        void clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
+        void clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters);
         void publishFiltered(pcl::PCLPointCloud2::Ptr cloud);
         void publishClustered(pcl::PCLPointCloud2::Ptr cloud, const std::string &frame_id);
 
@@ -42,7 +42,4 @@ class CloudFilter
         ros::Publisher pub_clustered;
 
         float leafSize = 0.01;
-
-        std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> clusters;
-        
 };
