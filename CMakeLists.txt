@@ -17,7 +17,10 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   tf
   laser_geometry
+  cv_bridge
 )
+find_package(OpenCV REQUIRED)
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -111,6 +114,7 @@ catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES adas_aeb
   CATKIN_DEPENDS  roscpp
+  DEPENDS OpenCV
 #  DEPENDS system_lib
 )
 
@@ -123,6 +127,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -163,6 +168,7 @@ add_dependencies(pcl_aeb_node
   ${${PROJECT_NAME}_EXPORTED_TARGETS} 
   ${catkin_EXPORTED_TARGETS}
   ${PROJECT_NAME}_gencfg
+  ${OpenCV_LIBRARIES}
 )
 ## Specify libraries to link a library or executable target against
 target_link_libraries(tof_aeb_node
@@ -171,6 +177,7 @@ target_link_libraries(tof_aeb_node
 
 target_link_libraries(pcl_aeb_node
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 

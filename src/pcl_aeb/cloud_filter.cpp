@@ -30,24 +30,36 @@ CloudFilter::CloudFilter(const ros::NodeHandle& nh)
 
 void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
 {
+    ROS_DEBUG("cloud recieved, # of points: %d", cloud_msg->data.size());
+
     pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgbCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr clusteredCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
     std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> clusters;
+    std::vector<std::vector<cv::Point2d>> shadows;
 
-    // Convert to PCL data type
+    // Convert from ros message to PCL data type
     pcl_conversions::toPCL(*cloud_msg, *cloud);
+    // voxelizing recieved data and reducing redundant points
+    ROS_DEBUG("# of points after cobverion: %d", cloud->data.size());
     this->downSample(cloud);
+    ROS_DEBUG("# of points after voxelizing: %d", cloud->data.size());
 
+    //conversion needed for further filtering
     pcl::fromPCLPointCloud2(*cloud, *rgbCloud);
 
     // this->paintWholeCloudWhite(rgbCloud);
+
+    // filtering out the street by z coordinate
     this->passthrough(rgbCloud);
+    ROS_DEBUG("number of points after passthrough: %d", rgbCloud->size());
+
 
     // pcl::toPCLPointCloud2(*rgbCloud, *cloud);
     // this->publishFiltered(cloud);
 
     this->clustering(rgbCloud, clusters);
+    
     this->paintClusters(clusters);
 
     for(size_t i = 0; i<clusters.size(); i++)
@@ -63,6 +75,8 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
     this->publishClustered(cloud, cloud_msg->header.frame_id);
 
     ROS_DEBUG("number of clusters: %d", clusters.size());
+    //tu sie wysypuje
+    this->getShadowsOfClusters(clusters, shadows);
 }
 
 void CloudFilter::paintWholeCloudWhite(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud)
@@ -88,7 +102,8 @@ void CloudFilter::paintClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::P
 void CloudFilter::downSample(pcl::PCLPointCloud2::Ptr PCLcloud)
 {
     pcl::VoxelGrid<pcl::PCLPointCloud2> vg;
-    vg.setLeafSize(this->leafSize, this->leafSize, this->leafSize);
+    // vg.setLeafSize(this->leafSize, this->leafSize, this->leafSize);
+    vg.setLeafSize(0.01, 0.01, 0.01);
     vg.setInputCloud(PCLcloud);
     vg.filter(*PCLcloud);
 }
@@ -114,6 +129,8 @@ void CloudFilter::clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, std::
     ec.setSearchMethod(tree);
     ec.setInputCloud(cloud);
     ec.extract(cluster_indices);
+
+    int counter = 0;
     
     for(auto it=cluster_indices.begin(); it!= cluster_indices.end(); ++it)
     {
@@ -124,6 +141,7 @@ void CloudFilter::clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, std::
             temp->points.push_back(cloud->points[*clust_it]);
         }
         clusters.push_back(temp); 
+        counter ++;
     }
 }
 
@@ -144,4 +162,20 @@ void CloudFilter::publishClustered(pcl::PCLPointCloud2::Ptr cloud, const std::st
 
     output.header.frame_id = frame_id;
     this->pub_clustered.publish(output);
+}
+
+void CloudFilter::getShadowsOfClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters, std::vector<std::vector<cv::Point2d>> &shadows)
+{
+    for(size_t i = 0; i<clusters.size(); i++)
+    {
+        for(auto& point: *clusters[i] )
+        {
+            cv::Point2d p(point.x, point.y);
+            if (std::find(shadows[i].begin(), shadows[i].end(), p) == shadows[i].end())
+            {
+                shadows[i].push_back(p);
+            }
+        }
+    }
+    ROS_DEBUG("opencv_works");
 }

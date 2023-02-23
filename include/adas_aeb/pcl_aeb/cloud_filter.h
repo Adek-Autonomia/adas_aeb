@@ -16,6 +16,7 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/segmentation/extract_clusters.h>
+#include <opencv2/opencv.hpp>
 
 
 
@@ -33,6 +34,7 @@ class CloudFilter
         void clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters);
         void publishFiltered(pcl::PCLPointCloud2::Ptr cloud);
         void publishClustered(pcl::PCLPointCloud2::Ptr cloud, const std::string &frame_id);
+        void getShadowsOfClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters, std::vector<std::vector<cv::Point2d>> &shadows);
 
     private:
         ros::NodeHandle handle;
