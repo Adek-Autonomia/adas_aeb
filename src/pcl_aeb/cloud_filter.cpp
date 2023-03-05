@@ -25,6 +25,7 @@ CloudFilter::CloudFilter(const ros::NodeHandle& nh)
     // this->pub_filtered = this->handle.advertise<sensor_msgs::PointCloud2>("/cloud_filtered", 1, false);
     this->pub_clustered = this->handle.advertise<sensor_msgs::PointCloud2>("/cloud_clustered", 1, false);
     // this->pub_segmented = this->handle.advertise<sensor_msgs::PointCloud2>("/cloud_filtered", 1, false);
+    this->pub_bbox = this->handle.advertise<vision_msgs::Detection3DArray>("/pointCloud/detections", 1, false);
 
 }
 
@@ -36,27 +37,19 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgbCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr clusteredCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
     std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> clusters;
-    std::vector<std::vector<cv::Point2d>> shadows;
+    vision_msgs::Detection3DArray output_msg;
 
     // Convert from ros message to PCL data type
     pcl_conversions::toPCL(*cloud_msg, *cloud);
     // voxelizing recieved data and reducing redundant points
-    ROS_DEBUG("# of points after cobverion: %d", cloud->data.size());
     this->downSample(cloud);
-    ROS_DEBUG("# of points after voxelizing: %d", cloud->data.size());
+    ROS_DEBUG("# of points after voxelizing: %lu", cloud->data.size());
 
     //conversion needed for further filtering
     pcl::fromPCLPointCloud2(*cloud, *rgbCloud);
 
-    // this->paintWholeCloudWhite(rgbCloud);
-
     // filtering out the street by z coordinate
-    this->passthrough(rgbCloud);
-    ROS_DEBUG("number of points after passthrough: %d", rgbCloud->size());
-
-
-    // pcl::toPCLPointCloud2(*rgbCloud, *cloud);
-    // this->publishFiltered(cloud);
+    this->stripStreetArea(rgbCloud);
 
     this->clustering(rgbCloud, clusters);
     
@@ -70,21 +63,36 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
         }
     }
 
+    for (size_t i = 0; i<clusters.size(); i++)
+    {
+        Eigen::Vector3f bboxTransform;
+        Eigen::Quaternionf bboxQuaternion;
+        pcl::PointXYZRGB minPoint, maxPoint;
+        this->findBoundingBox(clusters[i], bboxTransform, bboxQuaternion, minPoint, maxPoint);
+        vision_msgs::Detection3D det;
+        det.bbox.center.orientation.w = bboxQuaternion.w();
+        det.bbox.center.orientation.x = bboxQuaternion.x();
+        det.bbox.center.orientation.y = bboxQuaternion.y();
+        det.bbox.center.orientation.z = bboxQuaternion.z();
+
+        det.bbox.center.position.x = bboxTransform.x();
+        det.bbox.center.position.y = bboxTransform.y();
+        det.bbox.center.position.z = bboxTransform.z();
+
+        det.bbox.size.x = maxPoint.x - minPoint.x;
+        det.bbox.size.y = maxPoint.y - minPoint.y;
+        det.bbox.size.z = maxPoint.z - minPoint.z;
+
+        output_msg.detections.push_back(det);
+    }
+
     pcl::toPCLPointCloud2(*clusteredCloud, *cloud);
 
     this->publishClustered(cloud, cloud_msg->header.frame_id);
 
-    ROS_DEBUG("number of clusters: %d", clusters.size());
-    //tu sie wysypuje
-    this->getShadowsOfClusters(clusters, shadows);
-}
+    this->pub_bbox.publish(output_msg);
 
-void CloudFilter::paintWholeCloudWhite(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud)
-{
-    for(auto& point: *cloud)
-    {
-        point.rgb = 0xFFFFFF;
-    }
+    ROS_DEBUG("number of clusters: %lu", clusters.size());
 }
 
 void CloudFilter::paintClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters)
@@ -108,7 +116,7 @@ void CloudFilter::downSample(pcl::PCLPointCloud2::Ptr PCLcloud)
     vg.filter(*PCLcloud);
 }
 
-void CloudFilter::passthrough(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud)
+void CloudFilter::stripStreetArea(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud)
 {
     pcl::PassThrough<pcl::PointXYZRGB> pass;
     pass.setInputCloud(cloud);
@@ -161,21 +169,33 @@ void CloudFilter::publishClustered(pcl::PCLPointCloud2::Ptr cloud, const std::st
     pcl_conversions::fromPCL(*cloud, output);
 
     output.header.frame_id = frame_id;
+
     this->pub_clustered.publish(output);
 }
 
-void CloudFilter::getShadowsOfClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters, std::vector<std::vector<cv::Point2d>> &shadows)
+void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Eigen::Vector3f &bboxTransform, Eigen::Quaternionf &bboxQuaternion, pcl::PointXYZRGB minPoint, pcl::PointXYZRGB maxPoint)
 {
-    for(size_t i = 0; i<clusters.size(); i++)
-    {
-        for(auto& point: *clusters[i] )
-        {
-            cv::Point2d p(point.x, point.y);
-            if (std::find(shadows[i].begin(), shadows[i].end(), p) == shadows[i].end())
-            {
-                shadows[i].push_back(p);
-            }
-        }
-    }
-    ROS_DEBUG("opencv_works");
+    Eigen::Vector4f centroid;
+    pcl::compute3DCentroid(*cloud, centroid);
+    Eigen:: Matrix3f covariance;
+    pcl::computeCovarianceMatrixNormalized(*cloud, centroid, covariance);
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance, Eigen::ComputeEigenvectors);
+    Eigen::Matrix3f eigenVectors = eigen_solver.eigenvectors();
+    eigenVectors.col(2) = eigenVectors.col(0).cross(eigenVectors.col(1)); //necessary for correct signs
+
+    Eigen::Matrix4f projectionTransform(Eigen::Matrix4f::Identity());
+
+    projectionTransform.block<3,3>(0,0) = eigenVectors.transpose();
+    projectionTransform.block<3,1>(0,3) = -1.f * (projectionTransform.block<3,3>(0,0) * centroid.head<3>());
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr projectedCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::transformPointCloud(*cloud, *projectedCloud, projectionTransform);
+    // pcl::PointXYZRGB minPoint, maxPoint;
+    pcl::getMinMax3D(*projectedCloud, minPoint, maxPoint);
+
+    const Eigen::Vector3f meanDiagonal = 0.5f*(maxPoint.getVector3fMap() + minPoint.getVector3fMap());
+    const Eigen::Quaternionf quaternion(eigenVectors);
+    bboxQuaternion = quaternion;
+    bboxTransform = eigenVectors * meanDiagonal + centroid.head<3>();
+    
+
 }

@@ -15,9 +15,9 @@ find_package(catkin REQUIRED COMPONENTS
   message_filters
   pcl_ros
   sensor_msgs
+  vision_msgs
   tf
   laser_geometry
-  cv_bridge
 )
 find_package(OpenCV REQUIRED)
 

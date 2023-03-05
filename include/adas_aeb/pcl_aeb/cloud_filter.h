@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <vision_msgs/Detection3DArray.h>
 #include <std_msgs/Bool.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
@@ -16,8 +17,9 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/segmentation/extract_clusters.h>
-#include <opencv2/opencv.hpp>
-
+#include <pcl/common/centroid.h>
+#include <pcl/common/transforms.h>
+#include <pcl/common/common.h>
 
 
 
@@ -27,14 +29,13 @@ class CloudFilter
         CloudFilter(const ros::NodeHandle&);
         ~CloudFilter(){}
         void callback(const sensor_msgs::PointCloud2ConstPtr& cloudIn);
-        void paintWholeCloudWhite(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
         void paintClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters);
         void downSample(pcl::PCLPointCloud2::Ptr PCLcloud);
-        void passthrough(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
+        void stripStreetArea(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
         void clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters);
         void publishFiltered(pcl::PCLPointCloud2::Ptr cloud);
         void publishClustered(pcl::PCLPointCloud2::Ptr cloud, const std::string &frame_id);
-        void getShadowsOfClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters, std::vector<std::vector<cv::Point2d>> &shadows);
+        void findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Eigen::Vector3f &bboxTransform, Eigen::Quaternionf &bboxQuaternion, pcl::PointXYZRGB minPoint, pcl::PointXYZRGB maxPoint);
 
     private:
         ros::NodeHandle handle;
@@ -42,6 +43,7 @@ class CloudFilter
         ros::Publisher pub_stopFlag;
         ros::Publisher pub_filtered;
         ros::Publisher pub_clustered;
+        ros::Publisher pub_bbox;
 
         float leafSize = 0.01;
 };
