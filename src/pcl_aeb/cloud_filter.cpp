@@ -31,7 +31,7 @@ CloudFilter::CloudFilter(const ros::NodeHandle& nh)
 
 void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
 {
-    ROS_DEBUG("cloud recieved, # of points: %d", cloud_msg->data.size());
+    ROS_DEBUG("cloud recieved, # of points: %lu", cloud_msg->data.size());
 
     pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgbCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -63,28 +63,37 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
         }
     }
 
+    output_msg.detections.reserve(clusters.size());
     for (size_t i = 0; i<clusters.size(); i++)
     {
-        Eigen::Vector3f bboxTransform;
-        Eigen::Quaternionf bboxQuaternion;
-        pcl::PointXYZRGB minPoint, maxPoint;
-        this->findBoundingBox(clusters[i], bboxTransform, bboxQuaternion, minPoint, maxPoint);
+        vision_msgs::BoundingBox3D temp;
         vision_msgs::Detection3D det;
-        det.bbox.center.orientation.w = bboxQuaternion.w();
-        det.bbox.center.orientation.x = bboxQuaternion.x();
-        det.bbox.center.orientation.y = bboxQuaternion.y();
-        det.bbox.center.orientation.z = bboxQuaternion.z();
-
-        det.bbox.center.position.x = bboxTransform.x();
-        det.bbox.center.position.y = bboxTransform.y();
-        det.bbox.center.position.z = bboxTransform.z();
-
-        det.bbox.size.x = maxPoint.x - minPoint.x;
-        det.bbox.size.y = maxPoint.y - minPoint.y;
-        det.bbox.size.z = maxPoint.z - minPoint.z;
+        this->findBoundingBox(clusters[i], det.bbox);
 
         output_msg.detections.push_back(det);
     }
+    // for (size_t i = 0; i<clusters.size(); i++)
+    // {
+    //     Eigen::Vector3f bboxTransform;
+    //     Eigen::Quaternionf bboxQuaternion;
+    //     pcl::PointXYZRGB minPoint, maxPoint;
+    //     this->findBoundingBox(clusters[i], bboxTransform, bboxQuaternion, minPoint, maxPoint);
+    //     vision_msgs::Detection3D det;
+    //     det.bbox.center.orientation.w = bboxQuaternion.w();
+    //     det.bbox.center.orientation.x = bboxQuaternion.x();
+    //     det.bbox.center.orientation.y = bboxQuaternion.y();
+    //     det.bbox.center.orientation.z = bboxQuaternion.z();
+
+    //     det.bbox.center.position.x = bboxTransform.x();
+    //     det.bbox.center.position.y = bboxTransform.y();
+    //     det.bbox.center.position.z = bboxTransform.z();
+
+    //     det.bbox.size.x = maxPoint.x - minPoint.x;
+    //     det.bbox.size.y = maxPoint.y - minPoint.y;
+    //     det.bbox.size.z = maxPoint.z - minPoint.z;
+
+    //     output_msg.detections.push_back(det);
+    // }
 
     pcl::toPCLPointCloud2(*clusteredCloud, *cloud);
 
@@ -198,4 +207,35 @@ void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, 
     bboxTransform = eigenVectors * meanDiagonal + centroid.head<3>();
     
 
+}
+
+void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, vision_msgs::BoundingBox3D &box)
+{
+    std::vector<cv::Point2f> points;
+    points.reserve(cloud->size());
+    cv::Point2f minMaxZ(0,0);
+    for(auto& p: *cloud )
+    {
+        if(minMaxZ.x > p.z)//min
+        {
+            minMaxZ.x = p.z;
+        }
+        if(minMaxZ.y < p.z)
+        {
+            minMaxZ.y = p.z;//max
+        }
+        points.push_back(cv::Point2f(p.x, p.y));
+    }
+    cv::RotatedRect rect = cv::minAreaRect(points);
+    box.center.orientation.w = rect.angle;
+    box.center.orientation.x = box.center.orientation.y = 0;
+    box.center.orientation.z = 1;
+    
+    box.center.position.x = rect.center.x;
+    box.center.position.y = rect.center.y;
+    box.center.position.z = (minMaxZ.x + minMaxZ.y)/2;
+
+    box.size.x = rect.size.width;
+    box.size.y = rect.size.height;
+    box.size.z = minMaxZ.y - minMaxZ.x;
 }

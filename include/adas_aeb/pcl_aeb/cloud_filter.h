@@ -20,7 +20,7 @@
 #include <pcl/common/centroid.h>
 #include <pcl/common/transforms.h>
 #include <pcl/common/common.h>
-
+#include <opencv2/opencv.hpp>
 
 
 class CloudFilter
@@ -36,6 +36,7 @@ class CloudFilter
         void publishFiltered(pcl::PCLPointCloud2::Ptr cloud);
         void publishClustered(pcl::PCLPointCloud2::Ptr cloud, const std::string &frame_id);
         void findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Eigen::Vector3f &bboxTransform, Eigen::Quaternionf &bboxQuaternion, pcl::PointXYZRGB minPoint, pcl::PointXYZRGB maxPoint);
+        void findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, vision_msgs::BoundingBox3D &box);
 
     private:
         ros::NodeHandle handle;
