@@ -8,10 +8,10 @@
  * 
  * @param nh ros::NodeHandle object used as a parent element
  */
-Tof_node::Tof_node(ros::NodeHandle *nh, ros::NodeHandle* pnh)
+Tof_node::Tof_node(ros::NodeHandle* nh, ros::NodeHandle* pnh)
 {
     std::string paramTmp;
-    pnh->getParam("~stop_topic", paramTmp);
+    pnh->getParam("stop_topic", paramTmp);
 
     this->pub = nh->advertise<std_msgs::Float32>(paramTmp, 10);
 
