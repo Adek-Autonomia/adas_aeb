@@ -22,12 +22,28 @@
 #include <pcl/common/common.h>
 #include <opencv2/opencv.hpp>
 
+//to be moved to msgs types
+struct Bbox
+{
+    cv::RotatedRect XYPlane;
+    cv::Point2f zBound;
+
+    Bbox(cv::RotatedRect &XY, cv::Point2f &z){
+        XYPlane = XY;
+        zBound = z;
+    }
+    Bbox(){
+        XYPlane = cv::RotatedRect();
+        zBound = cv::Point2f();
+    }
+};
 
 class CloudFilter
 {
     public:
         CloudFilter(const ros::NodeHandle&);
         ~CloudFilter(){}
+        void setROI();
         void callback(const sensor_msgs::PointCloud2ConstPtr& cloudIn);
         void paintClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters);
         void downSample(pcl::PCLPointCloud2::Ptr PCLcloud);
@@ -36,7 +52,11 @@ class CloudFilter
         void publishFiltered(pcl::PCLPointCloud2::Ptr cloud);
         void publishClustered(pcl::PCLPointCloud2::Ptr cloud, const std::string &frame_id);
         void findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Eigen::Vector3f &bboxTransform, Eigen::Quaternionf &bboxQuaternion, pcl::PointXYZRGB minPoint, pcl::PointXYZRGB maxPoint);
-        void findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, vision_msgs::BoundingBox3D &box);
+        void findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Bbox &box);
+        bool isBoxInROI(Bbox &box);
+        bool isPointInROI(cv::Point2f &point);
+        float areaOfTriangle(cv::Point2f &A, cv::Point2f &B, cv::Point2f &C);
+        vision_msgs::BoundingBox3D& toRosBBox(Bbox &input_box);
 
     private:
         ros::NodeHandle handle;
@@ -47,4 +67,7 @@ class CloudFilter
         ros::Publisher pub_bbox;
 
         float leafSize = 0.01;
+        std::vector<cv::Point2f> ROI;
 };
+
+

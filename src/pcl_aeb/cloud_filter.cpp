@@ -16,6 +16,8 @@ CloudFilter::CloudFilter(const ros::NodeHandle& nh)
     this->leafSize = fParamTmp;
      // (x,y,z)
 
+    this->setROI();
+
     this->handle.getParam("merged_pcl_topic", paramTmp);
     this->sub = handle.subscribe("/cloud_merged", 10, &CloudFilter::callback, this); //topic hardcoded, error with launch param
     
@@ -29,6 +31,18 @@ CloudFilter::CloudFilter(const ros::NodeHandle& nh)
 
 }
 
+void CloudFilter::setROI()
+{
+    float x1 = 0.4;
+    float x2 = 3.0;
+    float y = 0.3;
+    this->ROI.reserve(4);
+    this->ROI[0] = cv::Point2f(x1, -y);
+    this->ROI[1] = cv::Point2f(x2, -y);
+    this->ROI[2] = cv::Point2f(x2, y);
+    this->ROI[3] = cv::Point2f(x1, y);
+}
+
 void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
 {
     ROS_DEBUG("cloud recieved, # of points: %lu", cloud_msg->data.size());
@@ -37,6 +51,7 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgbCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr clusteredCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
     std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> clusters;
+    std::vector<Bbox> boxes;
     vision_msgs::Detection3DArray output_msg;
 
     // Convert from ros message to PCL data type
@@ -63,37 +78,26 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
         }
     }
 
-    output_msg.detections.reserve(clusters.size());
+    boxes.reserve(clusters.size());
     for (size_t i = 0; i<clusters.size(); i++)
     {
-        vision_msgs::BoundingBox3D temp;
-        vision_msgs::Detection3D det;
-        this->findBoundingBox(clusters[i], det.bbox);
+        Bbox box;
+        this->findBoundingBox(clusters[i], box);
 
-        output_msg.detections.push_back(det);
+        boxes.push_back(box);
     }
-    // for (size_t i = 0; i<clusters.size(); i++)
-    // {
-    //     Eigen::Vector3f bboxTransform;
-    //     Eigen::Quaternionf bboxQuaternion;
-    //     pcl::PointXYZRGB minPoint, maxPoint;
-    //     this->findBoundingBox(clusters[i], bboxTransform, bboxQuaternion, minPoint, maxPoint);
-    //     vision_msgs::Detection3D det;
-    //     det.bbox.center.orientation.w = bboxQuaternion.w();
-    //     det.bbox.center.orientation.x = bboxQuaternion.x();
-    //     det.bbox.center.orientation.y = bboxQuaternion.y();
-    //     det.bbox.center.orientation.z = bboxQuaternion.z();
 
-    //     det.bbox.center.position.x = bboxTransform.x();
-    //     det.bbox.center.position.y = bboxTransform.y();
-    //     det.bbox.center.position.z = bboxTransform.z();
-
-    //     det.bbox.size.x = maxPoint.x - minPoint.x;
-    //     det.bbox.size.y = maxPoint.y - minPoint.y;
-    //     det.bbox.size.z = maxPoint.z - minPoint.z;
-
-    //     output_msg.detections.push_back(det);
-    // }
+    output_msg.detections.reserve(boxes.size());
+    for (size_t i =0; i<boxes.size(); i++)
+    {   
+        if(this->isBoxInROI(boxes[i]))
+        {
+            vision_msgs::BoundingBox3D box = this->toRosBBox(boxes[i]);
+            vision_msgs::Detection3D det;
+            det.bbox = box;
+            output_msg.detections.push_back(det);   
+        }
+    }
 
     pcl::toPCLPointCloud2(*clusteredCloud, *cloud);
 
@@ -102,6 +106,7 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
     this->pub_bbox.publish(output_msg);
 
     ROS_DEBUG("number of clusters: %lu", clusters.size());
+    ROS_DEBUG("number of boxes in ROI: %lu", boxes.size());
 }
 
 void CloudFilter::paintClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters)
@@ -184,6 +189,7 @@ void CloudFilter::publishClustered(pcl::PCLPointCloud2::Ptr cloud, const std::st
 
 void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Eigen::Vector3f &bboxTransform, Eigen::Quaternionf &bboxQuaternion, pcl::PointXYZRGB minPoint, pcl::PointXYZRGB maxPoint)
 {
+    //old approach, not used
     Eigen::Vector4f centroid;
     pcl::compute3DCentroid(*cloud, centroid);
     Eigen:: Matrix3f covariance;
@@ -209,7 +215,7 @@ void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, 
 
 }
 
-void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, vision_msgs::BoundingBox3D &box)
+void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Bbox &box)
 {
     std::vector<cv::Point2f> points;
     points.reserve(cloud->size());
@@ -227,15 +233,56 @@ void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, 
         points.push_back(cv::Point2f(p.x, p.y));
     }
     cv::RotatedRect rect = cv::minAreaRect(points);
-    box.center.orientation.w = rect.angle;
-    box.center.orientation.x = box.center.orientation.y = 0;
-    box.center.orientation.z = 1;
-    
-    box.center.position.x = rect.center.x;
-    box.center.position.y = rect.center.y;
-    box.center.position.z = (minMaxZ.x + minMaxZ.y)/2;
+    box.XYPlane = rect;
+    box.zBound = minMaxZ;
+}
 
-    box.size.x = rect.size.width;
-    box.size.y = rect.size.height;
-    box.size.z = minMaxZ.y - minMaxZ.x;
+bool CloudFilter:: isBoxInROI(Bbox& box)
+{
+    bool test_output = false;
+    std::vector<cv::Point2f> vertices;
+    vertices.reserve(4);
+    cv::boxPoints(box.XYPlane, vertices);
+    for(size_t i = 0; i<vertices.size(); i++)
+    {
+        test_output += this->isPointInROI(vertices[i]);
+    }
+    return test_output;
+}
+
+bool CloudFilter:: isPointInROI(cv::Point2f &point)
+{
+    float ABParea = this->areaOfTriangle(this->ROI[0], this->ROI[1], point);
+    float BCParea = this->areaOfTriangle(this->ROI[1], this->ROI[2], point);
+    float CDParea = this->areaOfTriangle(this->ROI[2], this->ROI[3], point);
+    float DAParea = this->areaOfTriangle(this->ROI[3], this->ROI[0], point);
+
+    float ROIarea = std::abs((this->ROI[0].x - this->ROI[2].x)*(this->ROI[0].y - this->ROI[2].y));
+
+    return (ABParea + BCParea + CDParea + DAParea) > ROIarea;
+}
+
+float CloudFilter:: areaOfTriangle(cv::Point2f &A, cv::Point2f &B, cv::Point2f &C)
+{
+    float area = std::abs(A.x*(B.y-C.y) + B.x*(C.y-A.y) + C.x*(A.y - B.y))/2;
+    return area;
+}
+
+vision_msgs::BoundingBox3D& CloudFilter:: toRosBBox(Bbox &input_box)
+{
+    static vision_msgs::BoundingBox3D output;
+
+    output.center.orientation.w = input_box.XYPlane.angle;
+    output.center.orientation.x = output.center.orientation.y = 0;
+    output.center.orientation.z = 1;
+    
+    output.center.position.x = input_box.XYPlane.center.x;
+    output.center.position.y = input_box.XYPlane.center.y;
+    output.center.position.z = (input_box.zBound.x + input_box.zBound.y)/2;
+
+    output.size.x = input_box.XYPlane.size.width;
+    output.size.y = input_box.XYPlane.size.height;
+    output.size.z = input_box.zBound.y - input_box.zBound.x;
+
+    return output;
 }
