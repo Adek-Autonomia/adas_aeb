@@ -54,8 +54,8 @@ class CloudFilter
         void findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Eigen::Vector3f &bboxTransform, Eigen::Quaternionf &bboxQuaternion, pcl::PointXYZRGB minPoint, pcl::PointXYZRGB maxPoint);
         void findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Bbox &box);
         bool isBoxInROI(Bbox &box);
-        bool isPointInROI(cv::Point2f &point);
-        float areaOfTriangle(cv::Point2f &A, cv::Point2f &B, cv::Point2f &C);
+        bool isPointInROI(const cv::Point2f &&point);
+        float areaOfTriangle(cv::Point2f &A, cv::Point2f &B, const cv::Point2f &C);
         vision_msgs::BoundingBox3D& toRosBBox(Bbox &input_box);
 
     private:

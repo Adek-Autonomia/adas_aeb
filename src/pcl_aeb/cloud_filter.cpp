@@ -35,7 +35,7 @@ void CloudFilter::setROI()
 {
     float x1 = 0.4;
     float x2 = 3.0;
-    float y = 0.3;
+    float y = 0.15;
     this->ROI.reserve(4);
     this->ROI[0] = cv::Point2f(x1, -y);
     this->ROI[1] = cv::Point2f(x2, -y);
@@ -70,14 +70,6 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
     
     this->paintClusters(clusters);
 
-    for(size_t i = 0; i<clusters.size(); i++)
-    {
-        for(auto& point: *clusters[i] )
-        {
-            clusteredCloud->points.push_back(point);
-        }
-    }
-
     boxes.reserve(clusters.size());
     for (size_t i = 0; i<clusters.size(); i++)
     {
@@ -95,9 +87,22 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
             vision_msgs::BoundingBox3D box = this->toRosBBox(boxes[i]);
             vision_msgs::Detection3D det;
             det.bbox = box;
-            output_msg.detections.push_back(det);   
+            output_msg.detections.push_back(det);
+
+            for(auto& point: *clusters[i] )
+            {
+                clusteredCloud->points.push_back(point);
+            } 
         }
     }
+
+    // for(size_t i = 0; i<clusters.size(); i++)
+    // {
+    //     for(auto& point: *clusters[i] )
+    //     {
+    //         clusteredCloud->points.push_back(point);
+    //     }
+    // }
 
     pcl::toPCLPointCloud2(*clusteredCloud, *cloud);
 
@@ -106,7 +111,7 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
     this->pub_bbox.publish(output_msg);
 
     ROS_DEBUG("number of clusters: %lu", clusters.size());
-    ROS_DEBUG("number of boxes in ROI: %lu", boxes.size());
+    ROS_DEBUG("number of boxes in ROI: %lu", output_msg.detections.size());
 }
 
 void CloudFilter::paintClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters)
@@ -232,25 +237,25 @@ void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, 
         }
         points.push_back(cv::Point2f(p.x, p.y));
     }
-    cv::RotatedRect rect = cv::minAreaRect(points);
-    box.XYPlane = rect;
+    box.XYPlane = cv::minAreaRect(points);
     box.zBound = minMaxZ;
 }
 
 bool CloudFilter:: isBoxInROI(Bbox& box)
 {
     bool test_output = false;
-    std::vector<cv::Point2f> vertices;
-    vertices.reserve(4);
-    cv::boxPoints(box.XYPlane, vertices);
-    for(size_t i = 0; i<vertices.size(); i++)
+    cv::Mat1f mat(4,2);
+    cv::boxPoints(box.XYPlane, mat);
+
+    for(size_t i = 0; i<mat.rows; i++)
     {
-        test_output += this->isPointInROI(vertices[i]);
+        test_output += this->isPointInROI(cv::Point2f(mat.row(i)));
+        
     }
     return test_output;
 }
 
-bool CloudFilter:: isPointInROI(cv::Point2f &point)
+bool CloudFilter:: isPointInROI(const cv::Point2f &&point)
 {
     float ABParea = this->areaOfTriangle(this->ROI[0], this->ROI[1], point);
     float BCParea = this->areaOfTriangle(this->ROI[1], this->ROI[2], point);
@@ -259,10 +264,10 @@ bool CloudFilter:: isPointInROI(cv::Point2f &point)
 
     float ROIarea = std::abs((this->ROI[0].x - this->ROI[2].x)*(this->ROI[0].y - this->ROI[2].y));
 
-    return (ABParea + BCParea + CDParea + DAParea) > ROIarea;
+    return (ABParea + BCParea + CDParea + DAParea) == ROIarea;
 }
 
-float CloudFilter:: areaOfTriangle(cv::Point2f &A, cv::Point2f &B, cv::Point2f &C)
+float CloudFilter:: areaOfTriangle(cv::Point2f &A, cv::Point2f &B, const cv::Point2f &C)
 {
     float area = std::abs(A.x*(B.y-C.y) + B.x*(C.y-A.y) + C.x*(A.y - B.y))/2;
     return area;
