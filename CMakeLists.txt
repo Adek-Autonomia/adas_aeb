@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   sensor_msgs
   vision_msgs
+  visualization_msgs
   tf
   laser_geometry
   roslaunch

@@ -7,14 +7,14 @@ CloudFilter::CloudFilter(const ros::NodeHandle& nh)
     {
         ros::console::notifyLoggerLevelsChanged();
     }
-    srand(time(NULL));
 
     std::string paramTmp;
     float fParamTmp;
 
-    this->handle.getParam("leaf_size", fParamTmp);
-    this->leafSize = fParamTmp;
-     // (x,y,z)
+    // do cfg 
+    // this->handle.getParam("leaf_size", fParamTmp);
+    this->leafSize = 0.01;
+    //  // (x,y,z)
 
     this->setROI();
 
@@ -24,15 +24,16 @@ CloudFilter::CloudFilter(const ros::NodeHandle& nh)
     this->handle.getParam("stop_topic", paramTmp);
     this->pub_stopFlag = this->handle.advertise<std_msgs::Bool>(paramTmp, 1, false);
 
-    // this->pub_filtered = this->handle.advertise<sensor_msgs::PointCloud2>("/cloud_filtered", 1, false);
     this->pub_clustered = this->handle.advertise<sensor_msgs::PointCloud2>("/cloud_clustered", 1, false);
-    // this->pub_segmented = this->handle.advertise<sensor_msgs::PointCloud2>("/cloud_filtered", 1, false);
+
     this->pub_bbox = this->handle.advertise<vision_msgs::Detection3DArray>("/pointCloud/detections", 1, false);
+    this->pub_markers = this->handle.advertise<visualization_msgs::MarkerArray>("/pointCloud/Boxes", 1, false);
 
 }
 
 void CloudFilter::setROI()
 {
+    // do cfg
     float x1 = 0.4;
     float x2 = 3.0;
     float y = 0.15;
@@ -47,18 +48,51 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
 {
     ROS_DEBUG("cloud recieved, # of points: %lu", cloud_msg->data.size());
 
-    pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2);
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgbCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr clusteredCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> clusters;
-    std::vector<Bbox> boxes;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr clusteredCloud (new pcl::PointCloud<pcl::PointXYZ>);
+    std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> clusters;
     vision_msgs::Detection3DArray output_msg;
+    visualization_msgs::MarkerArray vis_markers;
 
-    // Convert from ros message to PCL data type
-    pcl_conversions::toPCL(*cloud_msg, *cloud);
-    // voxelizing recieved data and reducing redundant points
+    this->getClusters(*cloud_msg, clusters, clusteredCloud);
+
+    output_msg.detections.reserve(clusters.size());
+    vis_markers.markers.reserve(clusters.size());
+
+    for (size_t i = 0; i<clusters.size(); i++)
+    {
+        Bbox temp_box;
+        visualization_msgs::Marker temp_marker;
+        this->findBoundingBox(clusters[i], temp_box);
+        bool inROI = this->isBoxInROI(temp_box);
+        this->createMarker(temp_marker, inROI, i, temp_box);
+        temp_marker.header.frame_id = cloud_msg->header.frame_id;
+        vis_markers.markers.push_back(temp_marker);
+        
+        if (inROI)
+        {
+            vision_msgs::BoundingBox3D bbox = this->toRosBBox(temp_box);
+            vision_msgs::Detection3D det;
+            det.bbox = bbox;
+            output_msg.detections.push_back(det);
+        }
+    }
+
+    this->publishClustered(clusteredCloud, cloud_msg->header.frame_id);
+
+    this->pub_bbox.publish(output_msg);
+    this->pub_markers.publish(vis_markers);
+
+    ROS_DEBUG("number of clusters: %lu", clusters.size());
+    ROS_DEBUG("number of boxes in ROI: %lu", output_msg.detections.size());
+}
+
+void CloudFilter::getClusters(const sensor_msgs::PointCloud2 &cloud_msg, std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> &clusters, pcl::PointCloud<pcl::PointXYZ>::Ptr rgbCloud)
+{
+    pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2);
+
+    pcl_conversions::toPCL(cloud_msg, *cloud);
+
     this->downSample(cloud);
-    ROS_DEBUG("# of points after voxelizing: %lu", cloud->data.size());
 
     //conversion needed for further filtering
     pcl::fromPCLPointCloud2(*cloud, *rgbCloud);
@@ -66,64 +100,10 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
     // filtering out the street by z coordinate
     this->stripStreetArea(rgbCloud);
 
+    ROS_DEBUG("# of points after voxelizing: %lu", rgbCloud->size());
+
     this->clustering(rgbCloud, clusters);
-    
-    this->paintClusters(clusters);
 
-    boxes.reserve(clusters.size());
-    for (size_t i = 0; i<clusters.size(); i++)
-    {
-        Bbox box;
-        this->findBoundingBox(clusters[i], box);
-
-        boxes.push_back(box);
-    }
-
-    output_msg.detections.reserve(boxes.size());
-    for (size_t i =0; i<boxes.size(); i++)
-    {   
-        if(this->isBoxInROI(boxes[i]))
-        {
-            vision_msgs::BoundingBox3D box = this->toRosBBox(boxes[i]);
-            vision_msgs::Detection3D det;
-            det.bbox = box;
-            output_msg.detections.push_back(det);
-
-            for(auto& point: *clusters[i] )
-            {
-                clusteredCloud->points.push_back(point);
-            } 
-        }
-    }
-
-    // for(size_t i = 0; i<clusters.size(); i++)
-    // {
-    //     for(auto& point: *clusters[i] )
-    //     {
-    //         clusteredCloud->points.push_back(point);
-    //     }
-    // }
-
-    pcl::toPCLPointCloud2(*clusteredCloud, *cloud);
-
-    this->publishClustered(cloud, cloud_msg->header.frame_id);
-
-    this->pub_bbox.publish(output_msg);
-
-    ROS_DEBUG("number of clusters: %lu", clusters.size());
-    ROS_DEBUG("number of boxes in ROI: %lu", output_msg.detections.size());
-}
-
-void CloudFilter::paintClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters)
-{
-    for (size_t i = 0; i < clusters.size(); i++)
-    {
-        int32_t rgb = (static_cast<uint32_t>(rand()%255)<<16|static_cast<uint32_t>(rand()%255)<<8|static_cast<uint32_t>(rand()%255));
-        for( auto& point : *clusters[i])
-        {
-            point.rgb = rgb;
-        }
-    }
 }
 
 void CloudFilter::downSample(pcl::PCLPointCloud2::Ptr PCLcloud)
@@ -135,21 +115,21 @@ void CloudFilter::downSample(pcl::PCLPointCloud2::Ptr PCLcloud)
     vg.filter(*PCLcloud);
 }
 
-void CloudFilter::stripStreetArea(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud)
+void CloudFilter::stripStreetArea(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
 {
-    pcl::PassThrough<pcl::PointXYZRGB> pass;
+    pcl::PassThrough<pcl::PointXYZ> pass;
     pass.setInputCloud(cloud);
     pass.setFilterFieldName("z");
     pass.setFilterLimits(-0.02,FLT_MAX);
     pass.filter(*cloud);
 }
 
-void CloudFilter::clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters)
+void CloudFilter::clustering(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> &clusters)
 {
     std::vector<pcl::PointIndices> cluster_indices;
-    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
     tree->setInputCloud(cloud);
-    pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
     ec.setClusterTolerance(0.05);
     ec.setMinClusterSize(100);
     ec.setMaxClusterSize(25000);
@@ -161,7 +141,7 @@ void CloudFilter::clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, std::
     
     for(auto it=cluster_indices.begin(); it!= cluster_indices.end(); ++it)
     {
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp (new pcl::PointCloud<pcl::PointXYZRGB>);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr temp (new pcl::PointCloud<pcl::PointXYZ>);
         
         for(auto clust_it = it->indices.begin(); clust_it!=it->indices.end(); ++clust_it)
         {
@@ -172,55 +152,21 @@ void CloudFilter::clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, std::
     }
 }
 
-void CloudFilter::publishFiltered(pcl::PCLPointCloud2::Ptr cloud)
-{   
-    sensor_msgs::PointCloud2 output;
-    
-    pcl_conversions::fromPCL(*cloud, output);
-
-    this->pub_filtered.publish(output);
-}
-
-void CloudFilter::publishClustered(pcl::PCLPointCloud2::Ptr cloud, const std::string &frame_id)
+void CloudFilter::publishClustered(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const std::string &frame_id)
 {
+    pcl::PCLPointCloud2::Ptr cloud_pcl (new pcl::PCLPointCloud2);
     sensor_msgs::PointCloud2 output;
-    
-    pcl_conversions::fromPCL(*cloud, output);
+
+    pcl::toPCLPointCloud2(*cloud, *cloud_pcl);
+
+    pcl_conversions::fromPCL(*cloud_pcl, output);
 
     output.header.frame_id = frame_id;
 
     this->pub_clustered.publish(output);
 }
 
-void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Eigen::Vector3f &bboxTransform, Eigen::Quaternionf &bboxQuaternion, pcl::PointXYZRGB minPoint, pcl::PointXYZRGB maxPoint)
-{
-    //old approach, not used
-    Eigen::Vector4f centroid;
-    pcl::compute3DCentroid(*cloud, centroid);
-    Eigen:: Matrix3f covariance;
-    pcl::computeCovarianceMatrixNormalized(*cloud, centroid, covariance);
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance, Eigen::ComputeEigenvectors);
-    Eigen::Matrix3f eigenVectors = eigen_solver.eigenvectors();
-    eigenVectors.col(2) = eigenVectors.col(0).cross(eigenVectors.col(1)); //necessary for correct signs
-
-    Eigen::Matrix4f projectionTransform(Eigen::Matrix4f::Identity());
-
-    projectionTransform.block<3,3>(0,0) = eigenVectors.transpose();
-    projectionTransform.block<3,1>(0,3) = -1.f * (projectionTransform.block<3,3>(0,0) * centroid.head<3>());
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr projectedCloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl::transformPointCloud(*cloud, *projectedCloud, projectionTransform);
-    // pcl::PointXYZRGB minPoint, maxPoint;
-    pcl::getMinMax3D(*projectedCloud, minPoint, maxPoint);
-
-    const Eigen::Vector3f meanDiagonal = 0.5f*(maxPoint.getVector3fMap() + minPoint.getVector3fMap());
-    const Eigen::Quaternionf quaternion(eigenVectors);
-    bboxQuaternion = quaternion;
-    bboxTransform = eigenVectors * meanDiagonal + centroid.head<3>();
-    
-
-}
-
-void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Bbox &box)
+void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Bbox &box)
 {
     std::vector<cv::Point2f> points;
     points.reserve(cloud->size());
@@ -243,34 +189,10 @@ void CloudFilter::findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, 
 
 bool CloudFilter:: isBoxInROI(Bbox& box)
 {
-    bool test_output = false;
-    cv::Mat1f mat(4,2);
-    cv::boxPoints(box.XYPlane, mat);
-
-    for(size_t i = 0; i<mat.rows; i++)
-    {
-        test_output += this->isPointInROI(cv::Point2f(mat.row(i)));
-        
-    }
-    return test_output;
-}
-
-bool CloudFilter:: isPointInROI(const cv::Point2f &&point)
-{
-    float ABParea = this->areaOfTriangle(this->ROI[0], this->ROI[1], point);
-    float BCParea = this->areaOfTriangle(this->ROI[1], this->ROI[2], point);
-    float CDParea = this->areaOfTriangle(this->ROI[2], this->ROI[3], point);
-    float DAParea = this->areaOfTriangle(this->ROI[3], this->ROI[0], point);
-
-    float ROIarea = std::abs((this->ROI[0].x - this->ROI[2].x)*(this->ROI[0].y - this->ROI[2].y));
-
-    return (ABParea + BCParea + CDParea + DAParea) == ROIarea;
-}
-
-float CloudFilter:: areaOfTriangle(cv::Point2f &A, cv::Point2f &B, const cv::Point2f &C)
-{
-    float area = std::abs(A.x*(B.y-C.y) + B.x*(C.y-A.y) + C.x*(A.y - B.y))/2;
-    return area;
+    cv::RotatedRect roi(this->ROI[0], this->ROI[1], this->ROI[2]);
+    std::vector<cv::Point2f> outputArea;
+    int overlap = cv::rotatedRectangleIntersection(roi, box.XYPlane, outputArea);
+    return overlap != cv::INTERSECT_NONE;
 }
 
 vision_msgs::BoundingBox3D& CloudFilter:: toRosBBox(Bbox &input_box)
@@ -290,4 +212,30 @@ vision_msgs::BoundingBox3D& CloudFilter:: toRosBBox(Bbox &input_box)
     output.size.z = input_box.zBound.y - input_box.zBound.x;
 
     return output;
+}
+
+void CloudFilter::createMarker(visualization_msgs::Marker &marker, bool inRoi, unsigned long id, Bbox &box)
+{
+    marker.ns = "vis";
+    marker.id = id;
+    marker.type = visualization_msgs::Marker::CUBE;
+    marker.action = visualization_msgs::Marker::ADD;
+    
+    marker.pose.position.x = box.XYPlane.center.x;
+    marker.pose.position.y = box.XYPlane.center.y;
+    marker.pose.position.z = (box.zBound.y + box.zBound.x)/2;
+
+    marker.pose.orientation.x = marker.pose.orientation.y = 0;
+    marker.pose.orientation.z = 1;
+    marker.pose.orientation.w = box.XYPlane.angle;
+
+    marker.scale.x = box.XYPlane.size.width;
+    marker.scale.y = box.XYPlane.size.height;
+    marker.scale.z = box.zBound.y - box.zBound.x;
+
+    marker.color.r = 1.0f*(!inRoi);
+    marker.color.g = 1.0f*inRoi;
+    marker.color.b = 0.0f;
+    marker.color.a = 0.3f;
+
 }

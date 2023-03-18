@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <vision_msgs/Detection3DArray.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/Bool.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
@@ -26,7 +27,7 @@
 struct Bbox
 {
     cv::RotatedRect XYPlane;
-    cv::Point2f zBound;
+    cv::Point2f zBound; // x - min, y - max
 
     Bbox(cv::RotatedRect &XY, cv::Point2f &z){
         XYPlane = XY;
@@ -45,28 +46,25 @@ class CloudFilter
         ~CloudFilter(){}
         void setROI();
         void callback(const sensor_msgs::PointCloud2ConstPtr& cloudIn);
-        void paintClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters);
+        void getClusters(const sensor_msgs::PointCloud2 &cloud_msg, std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> &clusters, pcl::PointCloud<pcl::PointXYZ>::Ptr rgbCloud);
         void downSample(pcl::PCLPointCloud2::Ptr PCLcloud);
-        void stripStreetArea(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
-        void clustering(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> &clusters);
-        void publishFiltered(pcl::PCLPointCloud2::Ptr cloud);
-        void publishClustered(pcl::PCLPointCloud2::Ptr cloud, const std::string &frame_id);
-        void findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Eigen::Vector3f &bboxTransform, Eigen::Quaternionf &bboxQuaternion, pcl::PointXYZRGB minPoint, pcl::PointXYZRGB maxPoint);
-        void findBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, Bbox &box);
+        void stripStreetArea(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+        void clustering(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> &clusters);
+        void publishClustered(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, const std::string &frame_id);
+        void findBoundingBox(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Bbox &box);
         bool isBoxInROI(Bbox &box);
-        bool isPointInROI(const cv::Point2f &&point);
-        float areaOfTriangle(cv::Point2f &A, cv::Point2f &B, const cv::Point2f &C);
         vision_msgs::BoundingBox3D& toRosBBox(Bbox &input_box);
+        void createMarker(visualization_msgs::Marker &marker, bool inRoi, unsigned long id, Bbox &box);
 
     private:
         ros::NodeHandle handle;
         ros::Subscriber sub;
         ros::Publisher pub_stopFlag;
-        ros::Publisher pub_filtered;
         ros::Publisher pub_clustered;
         ros::Publisher pub_bbox;
+        ros::Publisher pub_markers;
 
-        float leafSize = 0.01;
+        float leafSize;
         std::vector<cv::Point2f> ROI;
 };
 
