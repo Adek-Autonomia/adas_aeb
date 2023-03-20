@@ -22,6 +22,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/common/common.h>
 #include <opencv2/opencv.hpp>
+#include "adas_utils/ConfigParser.h"
 
 //to be moved to msgs types
 struct Bbox
@@ -42,7 +43,7 @@ struct Bbox
 class CloudFilter
 {
     public:
-        CloudFilter(const ros::NodeHandle&);
+        CloudFilter(adas::ConfigParser& parser, const ros::NodeHandle& nh, const ros::NodeHandle& pnh);
         ~CloudFilter(){}
         void setROI();
         void callback(const sensor_msgs::PointCloud2ConstPtr& cloudIn);
@@ -58,6 +59,8 @@ class CloudFilter
 
     private:
         ros::NodeHandle handle;
+        ros::NodeHandle privateHandle;
+
         ros::Subscriber sub;
         ros::Publisher pub_stopFlag;
         ros::Publisher pub_clustered;

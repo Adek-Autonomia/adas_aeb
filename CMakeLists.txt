@@ -10,13 +10,13 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
-  dynamic_reconfigure
   pcl_conversions
   message_filters
   pcl_ros
   sensor_msgs
   vision_msgs
   visualization_msgs
+  adas_utils
   tf
   laser_geometry
   roslaunch
@@ -26,9 +26,7 @@ find_package(OpenCV REQUIRED)
 
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-generate_dynamic_reconfigure_options(
-  cfg/PCL_AEB_.cfg
-)
+
 
 catkin_package(
   INCLUDE_DIRS include
@@ -67,7 +65,6 @@ add_dependencies(tof_aeb_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPOR
 add_dependencies(pcl_aeb_node 
   ${${PROJECT_NAME}_EXPORTED_TARGETS} 
   ${catkin_EXPORTED_TARGETS}
-  ${PROJECT_NAME}_gencfg
   ${OpenCV_LIBRARIES}
 )
 ## Specify libraries to link a library or executable target against

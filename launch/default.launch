@@ -27,6 +27,7 @@
 		<param name="stop_topic" value="$(arg stop_topic)" />
 		<param name="cloud_filtered" value="$(arg cloud_filtered)"/>
 		<param name="leaf_size" value="$(arg leaf_size)"/>
+		<param name="cloud_filter_config_file" value="$(find adas_aeb)/config/cloud_filter.yaml" />
 	</node>
 
 	<!-- Launch PCL merger for PCL AEB -->

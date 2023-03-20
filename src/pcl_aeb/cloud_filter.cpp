@@ -1,28 +1,26 @@
 #include "adas_aeb/pcl_aeb/cloud_filter.h"
 
-CloudFilter::CloudFilter(const ros::NodeHandle& nh)
-    : handle(nh)
+CloudFilter::CloudFilter(adas::ConfigParser& parser, const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
+    : handle(nh), privateHandle(pnh)
 {
     if(ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug))
     {
         ros::console::notifyLoggerLevelsChanged();
     }
 
-    std::string paramTmp;
+    std::string sParamTmp;
     float fParamTmp;
 
-    // do cfg 
-    // this->handle.getParam("leaf_size", fParamTmp);
-    this->leafSize = 0.01;
-    //  // (x,y,z)
+    this->leafSize = parser.getFloat("leaf_size");
+    ROS_DEBUG("%f", this->leafSize);
 
     this->setROI();
 
-    this->handle.getParam("merged_pcl_topic", paramTmp);
+    this->handle.getParam("merged_pcl_topic", sParamTmp);
     this->sub = handle.subscribe("/cloud_merged", 10, &CloudFilter::callback, this); //topic hardcoded, error with launch param
     
-    this->handle.getParam("stop_topic", paramTmp);
-    this->pub_stopFlag = this->handle.advertise<std_msgs::Bool>(paramTmp, 1, false);
+    this->handle.getParam("stop_topic", sParamTmp);
+    this->pub_stopFlag = this->handle.advertise<std_msgs::Bool>(sParamTmp, 1, false);
 
     this->pub_clustered = this->handle.advertise<sensor_msgs::PointCloud2>("/cloud_clustered", 1, false);
 
@@ -109,8 +107,9 @@ void CloudFilter::getClusters(const sensor_msgs::PointCloud2 &cloud_msg, std::ve
 void CloudFilter::downSample(pcl::PCLPointCloud2::Ptr PCLcloud)
 {
     pcl::VoxelGrid<pcl::PCLPointCloud2> vg;
-    // vg.setLeafSize(this->leafSize, this->leafSize, this->leafSize);
-    vg.setLeafSize(0.01, 0.01, 0.01);
+    vg.setLeafSize(this->leafSize, this->leafSize, this->leafSize);
+    // float ls = this->
+    // vg.setLeafSize(0.01, 0.01, 0.01);
     vg.setInputCloud(PCLcloud);
     vg.filter(*PCLcloud);
 }
