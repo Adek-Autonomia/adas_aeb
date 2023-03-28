@@ -12,7 +12,9 @@ CloudFilter::CloudFilter(adas::ConfigParser& parser, const ros::NodeHandle& nh, 
     float fParamTmp;
 
     this->leafSize = parser.getFloat("leaf_size");
-    ROS_DEBUG("%f", this->leafSize);
+    this->ROI_min_x = parser.getFloat("FOV_min_dist");
+    this->ROI_max_x = parser.getFloat("FOV_max_dist");
+    this->ROI_y = parser.getFloat("FOV_side_half_dist");
 
     this->setROI();
 
@@ -31,15 +33,11 @@ CloudFilter::CloudFilter(adas::ConfigParser& parser, const ros::NodeHandle& nh, 
 
 void CloudFilter::setROI()
 {
-    // do cfg
-    float x1 = 0.4;
-    float x2 = 3.0;
-    float y = 0.15;
     this->ROI.reserve(4);
-    this->ROI[0] = cv::Point2f(x1, -y);
-    this->ROI[1] = cv::Point2f(x2, -y);
-    this->ROI[2] = cv::Point2f(x2, y);
-    this->ROI[3] = cv::Point2f(x1, y);
+    this->ROI[0] = cv::Point2f(this->ROI_min_x, -this->ROI_y);
+    this->ROI[1] = cv::Point2f(this->ROI_max_x, -this->ROI_y);
+    this->ROI[2] = cv::Point2f(this->ROI_max_x, this->ROI_y);
+    this->ROI[3] = cv::Point2f(this->ROI_min_x, this->ROI_y);
 }
 
 void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
@@ -108,8 +106,6 @@ void CloudFilter::downSample(pcl::PCLPointCloud2::Ptr PCLcloud)
 {
     pcl::VoxelGrid<pcl::PCLPointCloud2> vg;
     vg.setLeafSize(this->leafSize, this->leafSize, this->leafSize);
-    // float ls = this->
-    // vg.setLeafSize(0.01, 0.01, 0.01);
     vg.setInputCloud(PCLcloud);
     vg.filter(*PCLcloud);
 }
@@ -224,9 +220,11 @@ void CloudFilter::createMarker(visualization_msgs::Marker &marker, bool inRoi, u
     marker.pose.position.y = box.XYPlane.center.y;
     marker.pose.position.z = (box.zBound.y + box.zBound.x)/2;
 
-    marker.pose.orientation.x = marker.pose.orientation.y = 0;
-    marker.pose.orientation.z = 1;
-    marker.pose.orientation.w = box.XYPlane.angle;
+    float norm = std::sqrt(1.0 + pow(box.XYPlane.angle*CV_PI/180.0,2) );
+
+    marker.pose.orientation.x = marker.pose.orientation.y = 0.0;
+    marker.pose.orientation.z = 1.0/norm;
+    marker.pose.orientation.w = box.XYPlane.angle*CV_PI/180.0/norm;
 
     marker.scale.x = box.XYPlane.size.width;
     marker.scale.y = box.XYPlane.size.height;

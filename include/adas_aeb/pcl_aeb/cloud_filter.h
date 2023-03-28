@@ -68,6 +68,9 @@ class CloudFilter
         ros::Publisher pub_markers;
 
         float leafSize;
+        float ROI_min_x;
+        float ROI_max_x;
+        float ROI_y;
         std::vector<cv::Point2f> ROI;
 };
 

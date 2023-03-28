@@ -1,2 +1,5 @@
 ## [float] leaf size of kd-tree in clustering algorythm units -> meters
 leaf_size: 0.01
+FOV_side_half_dist: 0.15
+FOV_min_dist: 0.4
+FOV_max_dist: 3.0
