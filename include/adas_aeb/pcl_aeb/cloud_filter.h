@@ -71,6 +71,11 @@ class CloudFilter
         float ROI_min_x;
         float ROI_max_x;
         float ROI_y;
+        float street_level;
+        float cluster_tolerance;
+        int min_cluster_size;
+        int max_cluster_size;
+
         std::vector<cv::Point2f> ROI;
 };
 

@@ -15,6 +15,11 @@ CloudFilter::CloudFilter(adas::ConfigParser& parser, const ros::NodeHandle& nh, 
     this->ROI_min_x = parser.getFloat("FOV_min_dist");
     this->ROI_max_x = parser.getFloat("FOV_max_dist");
     this->ROI_y = parser.getFloat("FOV_side_half_dist");
+    this->street_level = parser.getFloat("Street_level");
+    this->cluster_tolerance = parser.getFloat("cluster_tolerance");
+    this->min_cluster_size = parser.getInt("min_cluster_size");
+    this->max_cluster_size = parser.getInt("max_cluster_size");
+
 
     this->setROI();
 
@@ -49,6 +54,7 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
     vision_msgs::Detection3DArray output_msg;
     visualization_msgs::MarkerArray vis_markers;
 
+    clusters.reserve(40);
     this->getClusters(*cloud_msg, clusters, clusteredCloud);
 
     output_msg.detections.reserve(clusters.size());
@@ -115,7 +121,7 @@ void CloudFilter::stripStreetArea(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
     pcl::PassThrough<pcl::PointXYZ> pass;
     pass.setInputCloud(cloud);
     pass.setFilterFieldName("z");
-    pass.setFilterLimits(-0.02,FLT_MAX);
+    pass.setFilterLimits(this->street_level,FLT_MAX);
     pass.filter(*cloud);
 }
 
@@ -125,9 +131,9 @@ void CloudFilter::clustering(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vec
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
     tree->setInputCloud(cloud);
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-    ec.setClusterTolerance(0.05);
-    ec.setMinClusterSize(100);
-    ec.setMaxClusterSize(25000);
+    ec.setClusterTolerance(this->cluster_tolerance);
+    ec.setMinClusterSize(this->min_cluster_size);
+    ec.setMaxClusterSize(this->max_cluster_size);
     ec.setSearchMethod(tree);
     ec.setInputCloud(cloud);
     ec.extract(cluster_indices);
