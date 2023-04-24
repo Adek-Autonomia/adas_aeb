@@ -1,4 +1,4 @@
-#include "adas_aeb/pcl_aeb/cloud_filter.h"
+#include "adas_aeb/pcl_aeb/cloud_filter_node.h"
 
 int main(int argc, char** argv)
 {
@@ -10,7 +10,7 @@ int main(int argc, char** argv)
     pnh.getParam("cloud_filter_config_file", cfgFilename);
     adas::ConfigParser parser(cfgFilename);
 
-    CloudFilter cloudFilter(parser, nh, pnh);
+    CloudFilterNode cloudFilter(parser, nh, pnh);
 
     ros::spin();
 

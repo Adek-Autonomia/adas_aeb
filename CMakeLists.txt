@@ -55,7 +55,9 @@ add_executable(tof_aeb_node src/tof_aeb/main.cpp
 )
 
 add_executable(pcl_aeb_node src/pcl_aeb/simple_aeb_node.cpp
+  src/pcl_aeb/cloud_filter_node.cpp
   src/pcl_aeb/cloud_filter.cpp
+
 )
 
 ## Add cmake target dependencies of the executable
@@ -79,6 +81,6 @@ target_link_libraries(pcl_aeb_node
 
 if(CATKIN_ENABLE_TESTING)
   roslaunch_add_file_check(launch)
-  add_rostest(test/tof.test)
+  add_rostest(ros_test/tof.test)
 endif()
 

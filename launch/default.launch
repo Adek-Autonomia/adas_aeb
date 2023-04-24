@@ -3,13 +3,13 @@
 	
 	<arg name="lidar_topic_" default="/laser/scan" />
 	<arg name="camera_cloud_topic_" default="/zed2/zed_node/point_cloud/cloud_registered" />
-	<arg name="detections" default="/pointCloud/detections"/>
+	<arg name="detections_topic" default="/pointCloud/detections"/>
 
 	<arg name="merged_pcl_topic" default="/cloud_merged" />
 	<arg name="stop_topic" default="/aeb/stop" />
 	<arg name="cloud_filtered_topic" default="/cloud_filtered"/>
 	<arg name="cloud_clustered_topic" default="/cloud_clustered"/>
-	<arg name="boxes" default="/pointCloud/Boxes"/>
+	<arg name="boxes_topic" default="/pointCloud/Boxes"/>
 
 	<arg name="use_pcl" default="True" />
 	<arg name="use_tof" default="False" />
