@@ -23,16 +23,20 @@ CloudFilter::CloudFilter(adas::ConfigParser& parser, const ros::NodeHandle& nh, 
 
     this->setROI();
 
-    this->handle.getParam("merged_pcl_topic", sParamTmp);
-    this->sub = handle.subscribe("/cloud_merged", 10, &CloudFilter::callback, this); //topic hardcoded, error with launch param
+    this->privateHandle.getParam("merged_pcl_topic", sParamTmp);
+    this->sub = handle.subscribe(sParamTmp, 10, &CloudFilter::callback, this);
     
-    this->handle.getParam("stop_topic", sParamTmp);
+    this->privateHandle.getParam("stop_topic", sParamTmp);
     this->pub_stopFlag = this->handle.advertise<std_msgs::Bool>(sParamTmp, 1, false);
 
-    this->pub_clustered = this->handle.advertise<sensor_msgs::PointCloud2>("/cloud_clustered", 1, false);
+    this->privateHandle.getParam("cloud_clustered_topic", sParamTmp);
+    this->pub_clustered = this->handle.advertise<sensor_msgs::PointCloud2>(sParamTmp, 1, false);
 
-    this->pub_bbox = this->handle.advertise<vision_msgs::Detection3DArray>("/pointCloud/detections", 1, false);
-    this->pub_markers = this->handle.advertise<visualization_msgs::MarkerArray>("/pointCloud/Boxes", 1, false);
+    this->privateHandle.getParam("detections_topic", sParamTmp);
+    this->pub_bbox = this->handle.advertise<vision_msgs::Detection3DArray>(sParamTmp, 1, false);
+
+    this->privateHandle.getParam("boxes_topic", sParamTmp);
+    this->pub_markers = this->handle.advertise<visualization_msgs::MarkerArray>(sParamTmp, 1, false);
 
 }
 
@@ -73,8 +77,11 @@ void CloudFilter::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
         if (inROI)
         {
             vision_msgs::BoundingBox3D bbox = this->toRosBBox(temp_box);
+            sensor_msgs::PointCloud2::Ptr pcd;
+            pcl::toROSMsg(*clusters[i], *pcd);
             vision_msgs::Detection3D det;
             det.bbox = bbox;
+            det.source_cloud = *pcd;
             output_msg.detections.push_back(det);
         }
     }

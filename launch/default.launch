@@ -3,15 +3,16 @@
 	
 	<arg name="lidar_topic_" default="/laser/scan" />
 	<arg name="camera_cloud_topic_" default="/zed2/zed_node/point_cloud/cloud_registered" />
+	<arg name="detections" default="/pointCloud/detections"/>
 
 	<arg name="merged_pcl_topic" default="/cloud_merged" />
 	<arg name="stop_topic" default="/aeb/stop" />
-	<arg name="cloud_filtered" default="/cloud_filtered"/>
+	<arg name="cloud_filtered_topic" default="/cloud_filtered"/>
+	<arg name="cloud_clustered_topic" default="/cloud_clustered"/>
+	<arg name="boxes" default="/pointCloud/Boxes"/>
 
 	<arg name="use_pcl" default="True" />
 	<arg name="use_tof" default="False" />
-
-	<arg name="leaf_size" default="0.01"/>
 
 
 	<!-- Launch TOF AEB if specified -->
@@ -25,8 +26,11 @@
 		output="screen" if="$(arg use_pcl)">
 		<param name="merged_pcl_topic" value="$(arg merged_pcl_topic)"/>
 		<param name="stop_topic" value="$(arg stop_topic)" />
-		<param name="cloud_filtered" value="$(arg cloud_filtered)"/>
-		<param name="leaf_size" value="$(arg leaf_size)"/>
+		<param name="cloud_filtered_topic" value="$(arg cloud_filtered_topic)"/>
+		<param name="cloud_clustered_topic" value="$(arg cloud_clustered_topic)"/>
+		<param name="detections_topic" value="$(arg detections_topic)"/>
+		<param name="boxes_topic" value="$(arg boxes_topic)"/>
+
 		<param name="cloud_filter_config_file" value="$(find adas_aeb)/config/cloud_filter.yaml" />
 	</node>
 
