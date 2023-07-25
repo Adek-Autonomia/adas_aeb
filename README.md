@@ -1,6 +1,11 @@
 # adas_aeb
 ADAS Advanced Emergency Breaking subsystems. Contains a TOF AEB node, which is hardware-dependent, and a point-cloud based AEB node, which can also run in sim, but needs both LIDAR and a stereo camera.
 
+# additional dependency
+vision_msgs, can be installed with:
+```
+ sudo apt install ros-noetic-vision-msgs
+```
 
 ## Launchfiles
 Including in other launchfiles:
